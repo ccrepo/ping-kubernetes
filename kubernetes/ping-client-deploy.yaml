@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ping-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ping-client
+  template:
+    metadata:
+      labels:
+        app: ping-client
+    spec:
+      containers:
+        - name: ping-client
+          image: ping-client
+          imagePullPolicy: Never
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+

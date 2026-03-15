@@ -1,0 +1,69 @@
+# Dockerfile
+
+# Use the official Ubuntu 24.04 base image
+FROM ubuntu:24.04
+
+# Set shell
+SHELL ["/bin/sh", "-c"]
+
+# Environment
+ARG DOCKER_INSTALL_DIR=/usr/local/src
+ARG DOCKER_INSTALL_CACHEDIR=/var/lib/apt/lists
+ARG HOMEDIR=/root
+ARG LOGDIR=/var/logs
+ARG OMNET_DOCKER_GITREPO=ping-client
+ARG OMNET_DOCKER_GITUSER=ccrepo
+
+# Install apt-utils
+RUN apt-get update && \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y apt-utils && \
+  rm -rf ${DOCKER_INSTALL_CACHEDIR}/*
+
+# Install Java
+RUN apt-get update && \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-21-jdk && \
+  rm -rf ${DOCKER_INSTALL_CACHEDIR}/*
+
+# Install net-tools
+RUN apt-get update && \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y net-tools kmod strace python3 tcpdump iproute2 && \
+  rm -rf ${DOCKER_INSTALL_CACHEDIR}/*
+
+# Install other named tools
+RUN apt-get update && \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y git software-properties-common curl wget openssl gosu xemacs21 unzip zip vim && \
+  rm -rf ${DOCKER_INSTALL_CACHEDIR}/*
+
+# Install build tools
+RUN apt-get update && \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential && \
+  rm -rf ${DOCKER_INSTALL_CACHEDIR}/*
+
+# Install client
+WORKDIR ${DOCKER_INSTALL_DIR}
+
+RUN echo git clone "https://github.com/${OMNET_DOCKER_GITUSER}/${OMNET_DOCKER_GITREPO}.git"
+
+RUN git clone "https://github.com/${OMNET_DOCKER_GITUSER}/${OMNET_DOCKER_GITREPO}.git"
+
+# Build client
+
+WORKDIR ${DOCKER_INSTALL_DIR}/${OMNET_DOCKER_GITREPO}/bin
+
+RUN git pull
+
+RUN ./c
+
+# Expose
+
+EXPOSE 8081
+
+# Startup
+
+RUN mkdir -p /var/logs/ping
+
+WORKDIR ${DOCKER_INSTALL_DIR}/${OMNET_DOCKER_GITREPO}/bin
+
+#CMD (tail -f /dev/null)
+
+CMD ( ./r-ping-server-loop 2>&1 ) | tee -a /var/logs/ping/client.log

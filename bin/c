@@ -1,0 +1,115 @@
+#!/bin/bash
+
+# stop all containers
+docker stop $(docker ps -q)
+
+# remove all containers
+#docker rm $(docker ps -a -q)
+docker ps -a --filter "name=ping" -q | xargs docker rm -f
+
+# remove all images
+#docker rmi -f $(docker images -q)
+docker images --filter "reference=ping*" -q | xargs docker rmi -f
+
+kubectl delete deployment ping-server ping-client
+
+kubectl delete svc ping-server ping-client
+
+cd ..
+
+if [[ -d "build"  ]]
+then
+  rm -fr "build" 2>/dev/null
+fi
+
+mkdir -p "build"
+ 
+cd ./build
+
+if [[ "$?" != "0" ]]
+then
+  echo "cd into build failed"
+  exit 1
+fi
+
+docker build -t ping-server -f ../docker/dockerfile-ping-server .
+
+if [[ "$?" != "0" ]]
+then
+  echo "build of ping server failed"
+  exit 1
+fi
+
+docker build -t ping-client -f ../docker/dockerfile-ping-client .
+
+if [[ "$?" != "0" ]]
+then
+  echo "build of ping client failed"
+  exit 1
+fi
+
+kubectl apply -f ../kubernetes/ping-server-deploy.yaml
+
+if [[ "$?" != "0" ]]
+then
+  echo "apply of ping server failed"
+  exit 1
+fi
+
+kubectl apply -f ../kubernetes/ping-client-deploy.yaml
+
+if [[ "$?" != "0" ]]
+then
+  echo "apply of ping client failed"
+  exit 1
+fi
+
+kubectl apply -f ../kubernetes/ping-server-service.yaml
+
+if [[ "$?" != "0" ]]
+then
+  echo "apply of service failed"
+  exit 1
+fi
+
+cd ..
+
+docker ps --all
+
+rm -fr "./build/*"
+
+sleep 30
+
+kubectl get pods -l app=ping-server
+
+sleep 30
+
+kubectl get pods -l app=ping-client
+
+sleep 30
+
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+kubectl wait --for=condition=available deployment metrics-server -n kube-system --timeout=120s
+
+kubectl get deployment metrics-server -n kube-system
+
+sleep 5
+
+kubectl delete hpa ping-server
+
+sleep 5
+
+kubectl autoscale deployment ping-server --cpu=50% --min=1 --max=10
+
+kubectl get hpa
+
+POD_NAME="`kubectl get pods -l app=ping-client | grep -v NAME | cut -d" " -f1`"
+
+if [[ "${POD_NAME}" == "" ]] 
+then
+  echo "could not get ping-client pod"
+  exit 1
+fi 
+
+kubectl exec -it "${POD_NAME}" -- bash
