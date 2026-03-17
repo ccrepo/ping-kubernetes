@@ -5,7 +5,7 @@ docker stop $(docker ps -q)
 
 # remove all containers
 #docker rm $(docker ps -a -q)
-( docker ps -a --filter "name=ping" -q | xargs docker rm -f ) ) 2>/dev/null 
+( docker ps -a --filter "name=ping" -q | xargs docker rm -f ) 2>/dev/null 
 
 # remove all images
 #docker rmi -f $(docker images -q)
