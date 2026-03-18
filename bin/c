@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# stop all containers
-docker stop $(docker ps -q)
-
+# stop all ping containers
+docker stop $(docker ps -q --filter "name=ping")
+  
 # remove all containers
 #docker rm $(docker ps -a -q)
 ( docker ps -a --filter "name=ping" -q | xargs docker rm -f ) 2>/dev/null 
