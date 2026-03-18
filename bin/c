@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# make minikkube containers visible 
+if [[ "$(kubectl config current-context)" == "minikube" ]]; then
+  eval $(minikube docker-env)
+fi
+
 # stop all ping containers
 docker stop $(docker ps -q --filter "name=ping")
   
